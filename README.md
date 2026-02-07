@@ -43,7 +43,7 @@ TinyPic 是一款专为漫画/图片压缩设计的桌面工具，支持批量�
 
 #### ⚡ 性能优化
 - **多线程处理**: 1-100 线程可调
-- **7-Zip 集成**: 无需安装 UnRAR，直接读取 RAR 文件
+- **7-Zip 集成**: 调用本地安装的 7-Zip 解压 RAR 文件
 
 #### 💾 设置持久化
 - 所有设置自动保存到 `config.json`
@@ -66,7 +66,7 @@ TinyPic 是一款专为漫画/图片压缩设计的桌面工具，支持批量�
 #### 方式二：从源码运行
 ```bash
 # 克隆仓库
-git clone https://github.com/yourusername/tinypic.git
+git clone https://github.com/hugo1120/tinypic.git
 cd tinypic
 
 # 安装依赖
@@ -154,7 +154,7 @@ Download `TinyPic.exe` from [Releases](../../releases) and run.
 #### Option 2: Run from Source
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/tinypic.git
+git clone https://github.com/hugo1120/tinypic.git
 cd tinypic
 
 # Install dependencies
