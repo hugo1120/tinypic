@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+venv/
+.venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Build
+build/
+dist/
+*.spec
+
+# User Settings
+config.json
+
+# Logs
+*.log
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Binaries
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Project Specific
+Releases/
+v1.0.0/
+测试漫画/
+参考代码/
+kcc-master/
