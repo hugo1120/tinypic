@@ -9,10 +9,14 @@
 </p>
 
 <p align="center">
-  <a href="#功能特性">功能</a> •
-  <a href="#features">Features</a> •
-  <a href="#安装">安装</a> •
-  <a href="#使用">使用</a>
+  <a href="#中文">中文</a> •
+  <a href="#english">English</a>
+</p>
+
+<p align="center">
+  <b>中文</b>: <a href="#功能特性">功能</a> • <a href="#安装">安装</a> • <a href="#使用">使用</a> • <a href="#打包">打包</a>
+  <br>
+  <b>English</b>: <a href="#features">Features</a> • <a href="#installation">Installation</a> • <a href="#usage">Usage</a> • <a href="#build">Build</a>
 </p>
 
 ---
