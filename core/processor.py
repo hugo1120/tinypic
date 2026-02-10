@@ -191,7 +191,7 @@ def extract_rar_with_7zip(rar_path: Path, dest_dir: Path) -> List[Path]:
             if is_image_file(f):
                 image_files.append(Path(root) / f)
     
-    image_files.sort(key=lambda x: natural_sort_key(x.name))
+    image_files.sort(key=lambda x: natural_sort_key(str(x)))
     return image_files
 
 
@@ -366,7 +366,7 @@ class TaskProcessor:
             p for p in folder_path.rglob('*')
             if p.is_file() and is_image_file(p.name)
         ]
-        image_files.sort(key=lambda x: natural_sort_key(x.name))
+        image_files.sort(key=lambda x: natural_sort_key(str(x)))
         
         output_path = folder_path.parent / f"{folder_path.name}{OUTPUT_SUFFIX}.cbz"
         
