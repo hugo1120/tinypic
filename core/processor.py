@@ -148,19 +148,90 @@ def split_and_compress(
     return save_optimized(right_half), save_optimized(left_half)
 
 
+def rotate_and_compress(
+    image_data: bytes,
+    base_quality: int = DEFAULT_QUALITY,
+    crop_mode: str = 'none',
+    crop_power: float = 1.0
+) -> bytes:
+    """将宽图顺时针旋转90°并压缩（适合阅读器全屏查看）"""
+    original_quality = estimate_jpeg_quality(image_data)
+    actual_quality = min(base_quality, original_quality - 8)
+    actual_quality = max(60, actual_quality)
+
+    img = Image.open(io.BytesIO(image_data))
+
+    # 模式转换
+    if img.mode in ('RGBA', 'LA', 'P'):
+        background = Image.new('RGB', img.size, (255, 255, 255))
+        if img.mode == 'P':
+            img = img.convert('RGBA')
+        if img.mode in ('RGBA', 'LA'):
+            background.paste(img, mask=img.split()[-1])
+            img = background
+        else:
+            img = img.convert('RGB')
+    elif img.mode == 'L':
+        pass
+    elif img.mode != 'RGB':
+        img = img.convert('RGB')
+
+    is_gray = img.mode == 'L' or (img.mode == 'RGB' and is_grayscale_image(img))
+
+    # 顺时针旋转90°
+    img = img.transpose(Image.ROTATE_270)
+
+    # 应用裁剪
+    img = apply_crop(img, crop_mode, crop_power)
+
+    if is_gray:
+        if img.mode == 'RGB':
+            img = img.convert('L')
+
+    buf = io.BytesIO()
+    save_kwargs = {
+        'format': 'JPEG',
+        'quality': actual_quality,
+        'optimize': True,
+    }
+    if img.mode == 'RGB':
+        save_kwargs['subsampling'] = '4:2:0'
+        save_kwargs['progressive'] = True
+
+    img.save(buf, **save_kwargs)
+    data = buf.getvalue()
+
+    if optimize_jpeg:
+        try:
+            data = optimize_jpeg(data)
+        except Exception:
+            pass
+
+    return data
+
+
 def process_single_image(args: tuple) -> Tuple[int, bool, List[bytes], int]:
     """处理单张图片（供多线程调用）"""
-    index, image_data, is_cover, quality, crop_mode, crop_power = args
+    index, image_data, is_cover, quality, crop_mode, crop_power, spread_mode = args
     original_size = len(image_data)
-    
+
     if is_cover or not is_wide_image(image_data):
         # 单页：压缩 + 裁剪
         compressed, _ = compress_image(image_data, quality, crop_mode, crop_power)
         return (index, False, [compressed], original_size)
     else:
-        # 双页：切分 + 压缩 + 裁剪
-        first, second = split_and_compress(image_data, quality, crop_mode, crop_power)
-        return (index, True, [first, second], original_size)
+        if spread_mode == 'split':
+            # 双页：切分 + 压缩 + 裁剪（日漫顺序：右→左）
+            first, second = split_and_compress(image_data, quality, crop_mode, crop_power)
+            return (index, True, [first, second], original_size)
+        elif spread_mode == 'rotate':
+            # 双页：旋转90° + 压缩 + 裁剪
+            rotated = rotate_and_compress(image_data, quality, crop_mode, crop_power)
+            return (index, False, [rotated], original_size)
+        else:
+            # 不处理：原样压缩 + 裁剪
+            compressed, _ = compress_image(image_data, quality, crop_mode, crop_power)
+            return (index, False, [compressed], original_size)
 
 
 def extract_rar_with_7zip(rar_path: Path, dest_dir: Path) -> List[Path]:
@@ -271,19 +342,21 @@ class ProcessorStats:
 
 class TaskProcessor:
     """任务处理器"""
-    
+
     def __init__(
         self,
         quality: int = DEFAULT_QUALITY,
         num_threads: int = 4,
         crop_mode: str = 'none',
         crop_power: float = 1.0,
+        spread_mode: str = 'split',
         progress_callback: Optional[Callable[[int, int, str], None]] = None
     ):
         self.quality = quality
         self.num_threads = max(1, min(100, num_threads))
         self.crop_mode = crop_mode
         self.crop_power = crop_power
+        self.spread_mode = spread_mode
         self.progress_callback = progress_callback
         self._cancelled = False
     
@@ -376,7 +449,7 @@ class TaskProcessor:
             with open(img_path, 'rb') as f:
                 data = f.read()
             is_cover = (i == 0)
-            image_data_list.append((i, data, is_cover, self.quality, self.crop_mode, self.crop_power))
+            image_data_list.append((i, data, is_cover, self.quality, self.crop_mode, self.crop_power, self.spread_mode))
             file_names.append(img_path.name)
         
         results, stats = self._process_images_parallel(image_data_list, file_names)
@@ -403,7 +476,7 @@ class TaskProcessor:
             for i, entry in enumerate(entries):
                 data = zf_in.read(entry)
                 is_cover = (i == 0)
-                image_data_list.append((i, data, is_cover, self.quality, self.crop_mode, self.crop_power))
+                image_data_list.append((i, data, is_cover, self.quality, self.crop_mode, self.crop_power, self.spread_mode))
                 file_names.append(Path(entry).name)
         
         results, stats = self._process_images_parallel(image_data_list, file_names)
@@ -432,7 +505,7 @@ class TaskProcessor:
                 with open(img_path, 'rb') as f:
                     data = f.read()
                 is_cover = (i == 0)
-                image_data_list.append((i, data, is_cover, self.quality, self.crop_mode, self.crop_power))
+                image_data_list.append((i, data, is_cover, self.quality, self.crop_mode, self.crop_power, self.spread_mode))
                 file_names.append(img_path.name)
             
             results, stats = self._process_images_parallel(image_data_list, file_names)
@@ -456,7 +529,7 @@ class TaskProcessor:
         file_names = []
         for i, (name, data) in enumerate(epub_images):
             is_cover = (i == 0)
-            image_data_list.append((i, data, is_cover, self.quality, self.crop_mode, self.crop_power))
+            image_data_list.append((i, data, is_cover, self.quality, self.crop_mode, self.crop_power, self.spread_mode))
             file_names.append(Path(name).name)
         
         results, stats = self._process_images_parallel(image_data_list, file_names)

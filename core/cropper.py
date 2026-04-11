@@ -4,7 +4,6 @@
 支持：白边裁剪、页码裁剪
 """
 from PIL import Image, ImageOps, ImageFilter
-import numpy as np
 from typing import Optional, Tuple, Literal
 
 
@@ -171,23 +170,25 @@ def crop_page_number(img: Image.Image, power: float = 1.0) -> Image.Image:
         return img
     
     img_part = gray.crop((left, bot_y_pos - window_h, right, bot_y_pos))
-    
-    # 检测底部区域的物体
-    img_part_mat = np.array(img_part)
+
+    # 获取像素数据（纯 Python 替代 numpy）
+    img_part.load()
+    pixel_data = list(img_part.getdata())
+    img_w = img_part.size[0]
+
     window_groups = []
-    
+
     for i in range(img_part.size[1]):
-        row = img_part_mat[i] if i < img_part_mat.shape[0] else []
-        if len(row) == 0:
-            continue
-        indices = np.where(row <= threshold)[0]
+        row_start = i * img_w
+        row_end = row_start + img_w
+        row = pixel_data[row_start:row_end]
+        indices = [j for j, v in enumerate(row) if v <= threshold]
         row_groups = [(g[0], g[1], i, i) for g in group_close_values(indices, img.size[0] * max_dist[0])]
         window_groups.extend(row_groups)
     
     if not window_groups:
         return img
-    
-    window_groups = np.array(window_groups)
+
     boxes = merge_boxes(window_groups, (img.size[0] * max_dist[0], img.size[1] * max_dist[1]))
     
     # 过滤小物体
@@ -221,37 +222,37 @@ def crop_page_number(img: Image.Image, power: float = 1.0) -> Image.Image:
     return img
 
 
-def merge_boxes(boxes: np.ndarray, max_dist: Tuple[float, float]) -> list:
+def merge_boxes(boxes: list, max_dist: Tuple[float, float]) -> list:
     """合并相近的边界框"""
-    boxes = list(boxes)
+    boxes = [list(b) for b in boxes]
     j = 0
-    
+
     while j < len(boxes) - 1:
         g1 = boxes[j]
         intersecting = []
         other = []
-        
+
         for i in range(j + 1, len(boxes)):
             g2 = boxes[i]
             if box_intersect(g1, g2, max_dist):
                 intersecting.append(g2)
             else:
                 other.append(g2)
-        
+
         if intersecting:
-            all_boxes = np.array([g1] + intersecting)
+            all_boxes = [g1] + intersecting
             merged = [
-                np.min(all_boxes[:, 0]),
-                np.max(all_boxes[:, 1]),
-                np.min(all_boxes[:, 2]),
-                np.max(all_boxes[:, 3])
+                min(b[0] for b in all_boxes),
+                max(b[1] for b in all_boxes),
+                min(b[2] for b in all_boxes),
+                max(b[3] for b in all_boxes)
             ]
             other.append(merged)
             boxes = boxes[:j] + other
             j = 0
         else:
             j += 1
-    
+
     return boxes
 
 

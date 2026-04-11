@@ -3,9 +3,9 @@
 解决裁剪后体积膨胀问题
 """
 import io
+import random
 from pathlib import Path
 from PIL import Image
-import numpy as np
 
 # 尝试导入 MozJPEG 优化库
 try:
@@ -30,32 +30,31 @@ def is_image_file(filename: str) -> bool:
 def is_grayscale_image(img: Image.Image, sample_size: int = 2000) -> bool:
     """
     快速检测图片是否为灰度（黑白）
+    使用纯 PIL + Python 随机采样，替代 numpy
     """
     if img.mode == 'L':
         return True
     if img.mode != 'RGB':
         return False
-    
-    arr = np.array(img)
-    h, w = arr.shape[:2]
-    
-    np.random.seed(42)
-    sample_count = min(sample_size, h * w)
-    indices = np.random.choice(h * w, sample_count, replace=False)
-    
-    rows = indices // w
-    cols = indices % w
-    samples = arr[rows, cols]
-    
-    r, g, b = samples[:, 0], samples[:, 1], samples[:, 2]
-    
-    diff_rg = np.abs(r.astype(int) - g.astype(int))
-    diff_rb = np.abs(r.astype(int) - b.astype(int))
-    
+
+    w, h = img.size
+    pixel_count = w * h
+
+    img.load()  # 确保像素数据可用
+    pixels = img.getdata()
+
+    sample_count = min(sample_size, pixel_count)
+    random.seed(42)
+    indices = random.sample(range(pixel_count), sample_count)
+
     threshold = 15
-    grayscale_ratio = np.mean((diff_rg < threshold) & (diff_rb < threshold))
-    
-    return grayscale_ratio > 0.92
+    grayscale_count = 0
+    for idx in indices:
+        r, g, b = pixels[idx]
+        if abs(r - g) < threshold and abs(r - b) < threshold:
+            grayscale_count += 1
+
+    return (grayscale_count / sample_count) > 0.92
 
 
 def estimate_jpeg_quality(image_data: bytes) -> int:

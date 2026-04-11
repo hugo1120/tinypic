@@ -15,8 +15,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QDragEnterEvent, QDropEvent, QIcon, QPixmap
 
-from core.processor import TaskProcessor, ProcessorStats
-from core.settings import Settings, CROP_MODES
+from core.settings import Settings, CROP_MODES, SPREAD_MODES
 
 
 def get_resource_path(relative_path: str) -> str:
@@ -165,18 +164,20 @@ class WorkerThread(QThread):
     all_complete = Signal()
     error = Signal(str, str)
     
-    def __init__(self, tasks: List[Path], quality: int, num_threads: int, 
-                 crop_mode: str, crop_power: float):
+    def __init__(self, tasks: List[Path], quality: int, num_threads: int,
+                 crop_mode: str, crop_power: float, spread_mode: str):
         super().__init__()
         self.tasks = tasks
         self.quality = quality
         self.num_threads = num_threads
         self.crop_mode = crop_mode
         self.crop_power = crop_power
+        self.spread_mode = spread_mode
         self.processor = None
         self._cancelled = False
     
     def run(self):
+        from core.processor import TaskProcessor
         self._cancelled = False
         for task_path in self.tasks:
             if self._cancelled:
@@ -187,6 +188,7 @@ class WorkerThread(QThread):
                 num_threads=self.num_threads,
                 crop_mode=self.crop_mode,
                 crop_power=self.crop_power,
+                spread_mode=self.spread_mode,
                 progress_callback=lambda c, t, f: self.progress.emit(c, t, f)
             )
             
@@ -355,7 +357,22 @@ class MainWindow(QMainWindow):
         power_layout.addWidget(self.power_value)
         power_layout.addStretch()
         layout.addLayout(power_layout)
-        
+
+        # 双页处理模式设置
+        spread_layout = QHBoxLayout()
+        spread_label = QLabel("双页处理:")
+        self.spread_combo = QComboBox()
+        for mode, name in SPREAD_MODES.items():
+            self.spread_combo.addItem(name, mode)
+        current_spread_index = list(SPREAD_MODES.keys()).index(self.settings.spread_mode)
+        self.spread_combo.setCurrentIndex(current_spread_index)
+        self.spread_combo.currentIndexChanged.connect(self.on_spread_mode_changed)
+
+        spread_layout.addWidget(spread_label)
+        spread_layout.addWidget(self.spread_combo)
+        spread_layout.addStretch()
+        layout.addLayout(spread_layout)
+
         # 任务列表
         list_label = QLabel("任务列表")
         list_label.setStyleSheet("font-weight: bold;")
@@ -411,6 +428,10 @@ class MainWindow(QMainWindow):
         power = value / 10.0
         self.power_value.setText(f"{power:.1f}")
         self.settings.crop_power = power
+
+    def on_spread_mode_changed(self, index: int):
+        mode = self.spread_combo.itemData(index)
+        self.settings.spread_mode = mode
     
     def on_files_dropped(self, paths: List[Path]):
         for path in paths:
@@ -448,13 +469,15 @@ class MainWindow(QMainWindow):
         self.thread_slider.setEnabled(False)
         self.crop_combo.setEnabled(False)
         self.power_slider.setEnabled(False)
-        
+        self.spread_combo.setEnabled(False)
+
         self.worker = WorkerThread(
             tasks=self.pending_tasks.copy(),
             quality=self.settings.quality,
             num_threads=self.settings.num_threads,
             crop_mode=self.settings.crop_mode,
-            crop_power=self.settings.crop_power
+            crop_power=self.settings.crop_power,
+            spread_mode=self.settings.spread_mode
         )
         self.worker.progress.connect(self.on_progress)
         self.worker.task_complete.connect(self.on_task_complete)
@@ -472,7 +495,7 @@ class MainWindow(QMainWindow):
         self.progress_bar.setValue(percent)
         self.progress_label.setText(f"处理中: {filename} ({current}/{total})")
     
-    def on_task_complete(self, task_path: str, stats: ProcessorStats):
+    def on_task_complete(self, task_path: str, stats: object):
         for i in range(self.task_list.count()):
             item = self.task_list.item(i)
             if item.data(Qt.UserRole) == task_path:
@@ -498,6 +521,7 @@ class MainWindow(QMainWindow):
         self.thread_slider.setEnabled(True)
         self.crop_combo.setEnabled(True)
         self.power_slider.setEnabled(True)
+        self.spread_combo.setEnabled(True)
         self.progress_label.setText("全部完成！")
         self.progress_bar.setValue(100)
         self.pending_tasks.clear()

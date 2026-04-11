@@ -23,12 +23,20 @@ CROP_MODES = {
     'margins+page': '白边+页码裁剪',
 }
 
+# 双页处理模式选项
+SPREAD_MODES = {
+    'split': '拆分双页',
+    'rotate': '自动旋转',
+    'none': '不处理',
+}
+
 # 默认设置
 DEFAULT_SETTINGS = {
     'quality': 72,
     'num_threads': 8,
     'crop_mode': 'margins',      # 裁剪模式
     'crop_power': 1.0,           # 裁剪力度 0-3
+    'spread_mode': 'split',      # 双页处理模式: split/rotate/none
 }
 
 
@@ -89,8 +97,18 @@ class Settings:
     @property
     def crop_power(self) -> float:
         return self._data.get('crop_power', 1.0)
-    
+
     @crop_power.setter
     def crop_power(self, value: float):
         self._data['crop_power'] = max(0.0, min(3.0, value))
         self.save()
+
+    @property
+    def spread_mode(self) -> str:
+        return self._data.get('spread_mode', 'split')
+
+    @spread_mode.setter
+    def spread_mode(self, value: str):
+        if value in SPREAD_MODES:
+            self._data['spread_mode'] = value
+            self.save()
