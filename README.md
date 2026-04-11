@@ -35,9 +35,15 @@ TinyPic 是一款专为漫画/图片压缩设计的桌面工具，支持批量�
 
 #### ✂️ 智能裁剪
 - **双页切分**: 自动检测宽图并按日漫顺序（右→左）切分
+- **自动旋转**: 宽图顺时针旋转 90°，适合阅读器全屏查看
 - **白边裁剪**: 去除图片四周空白边距，节省 5-15% 体积
 - **页码裁剪**: 智能检测并移除底部页码，额外节省 2-5%
 - **裁剪力度**: 0-3 可调，越高越激进
+
+#### 📖 双页处理
+- **拆分双页**: 自动切分为左右单页（日漫阅读顺序）
+- **自动旋转**: 宽幅双页旋转 90°，适配竖屏阅读器
+- **不处理**: 保留原图不做双页处理
 
 #### 🗜️ 高效压缩
 - **动态质量**: 根据原图质量自动调整，避免重编码膨胀
@@ -46,6 +52,7 @@ TinyPic 是一款专为漫画/图片压缩设计的桌面工具，支持批量�
 - **色度抽样**: 4:2:0 抽样 + 渐进式 JPEG
 
 #### ⚡ 性能优化
+- **快速启动**: EXE 体积优化至 ~32 MB，启动时间大幅缩短
 - **多线程处理**: 1-100 线程可调
 - **7-Zip 集成**: 调用本地安装的 7-Zip 解压 RAR 文件
 
@@ -57,7 +64,7 @@ TinyPic 是一款专为漫画/图片压缩设计的桌面工具，支持批量�
 | 组件 | 技术 |
 |------|------|
 | GUI | PySide6 (Qt6) |
-| 图像处理 | Pillow, NumPy |
+| 图像处理 | Pillow |
 | JPEG 优化 | mozjpeg-lossless-optimization |
 | RAR 解压 | 7-Zip (外部) |
 | 打包 | PyInstaller |
@@ -85,7 +92,8 @@ python main.py
 1. 拖拽漫画文件夹或压缩包到窗口
 2. 调整压缩质量 (60-95)
 3. 选择裁剪模式
-4. 点击「开始处理」
+4. 选择双页处理模式（拆分 / 旋转 / 不处理）
+5. 点击「开始处理」
 
 输出文件保存在原文件同目录，文件名后缀 `_tinypic.cbz`。
 
@@ -123,9 +131,15 @@ TinyPic is a desktop tool designed for batch comic/image compression with automa
 
 #### ✂️ Smart Cropping
 - **Double-page Split**: Auto-detect wide images and split in manga order (right→left)
+- **Auto Rotate**: Rotate wide images 90° clockwise for e-reader full-screen viewing
 - **Margin Cropping**: Remove white/black margins, save 5-15% size
 - **Page Number Cropping**: Intelligently detect and remove bottom page numbers, save 2-5% more
 - **Cropping Power**: Adjustable 0-3, higher = more aggressive
+
+#### 📖 Spread Processing
+- **Split**: Auto-split wide pages into left/right (manga reading order)
+- **Rotate**: Rotate wide pages 90° for portrait e-readers
+- **None**: Keep original double pages as-is
 
 #### 🗜️ Efficient Compression
 - **Dynamic Quality**: Auto-adjust based on source quality to avoid bloat
@@ -134,6 +148,7 @@ TinyPic is a desktop tool designed for batch comic/image compression with automa
 - **Chroma Subsampling**: 4:2:0 + Progressive JPEG
 
 #### ⚡ Performance
+- **Fast Startup**: Optimized to ~32 MB EXE with significantly faster launch times
 - **Multi-threading**: 1-100 threads configurable
 - **7-Zip Integration**: Direct RAR processing (requires 7-Zip)
 
@@ -145,7 +160,7 @@ TinyPic is a desktop tool designed for batch comic/image compression with automa
 | Component | Technology |
 |-----------|------------|
 | GUI | PySide6 (Qt6) |
-| Image Processing | Pillow, NumPy |
+| Image Processing | Pillow |
 | JPEG Optimization | mozjpeg-lossless-optimization |
 | RAR Extraction | 7-Zip (external) |
 | Packaging | PyInstaller |
@@ -173,7 +188,8 @@ python main.py
 1. Drag comic folders or archives into the window
 2. Adjust compression quality (60-95)
 3. Select cropping mode
-4. Click "Start Processing"
+4. Select spread processing mode (Split / Rotate / None)
+5. Click "Start Processing"
 
 Output files are saved in the same directory with `_tinypic.cbz` suffix.
 
