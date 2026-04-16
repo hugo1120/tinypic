@@ -13,9 +13,9 @@ from PySide6.QtWidgets import (
     QLabel, QListWidget, QListWidgetItem, QPushButton,
     QSlider, QProgressBar, QFrame, QComboBox
 )
-from PySide6.QtGui import QDragEnterEvent, QDropEvent, QIcon, QPixmap
+from PySide6.QtGui import QDragEnterEvent, QDropEvent, QIcon
 
-from core.settings import Settings, CROP_MODES, SPREAD_MODES
+from core.settings import MAX_PROCESS_THREADS, Settings, CROP_MODES, SPREAD_MODES
 
 
 def get_resource_path(relative_path: str) -> str:
@@ -296,6 +296,7 @@ class MainWindow(QMainWindow):
         self.quality_slider.setValue(self.settings.quality)
         self.quality_slider.setFixedWidth(150)
         self.quality_slider.valueChanged.connect(self.on_quality_changed)
+        self.quality_slider.sliderReleased.connect(self.settings.save)
         
         self.quality_value = QLabel(str(self.settings.quality))
         self.quality_value.setFixedWidth(28)
@@ -310,10 +311,11 @@ class MainWindow(QMainWindow):
         thread_layout = QHBoxLayout()
         thread_label = QLabel("处理线程:")
         self.thread_slider = QSlider(Qt.Horizontal)
-        self.thread_slider.setRange(1, 100)
+        self.thread_slider.setRange(1, MAX_PROCESS_THREADS)
         self.thread_slider.setValue(self.settings.num_threads)
         self.thread_slider.setFixedWidth(150)
         self.thread_slider.valueChanged.connect(self.on_thread_changed)
+        self.thread_slider.sliderReleased.connect(self.settings.save)
         
         self.thread_value = QLabel(str(self.settings.num_threads))
         self.thread_value.setFixedWidth(28)
@@ -334,6 +336,7 @@ class MainWindow(QMainWindow):
         current_index = list(CROP_MODES.keys()).index(self.settings.crop_mode)
         self.crop_combo.setCurrentIndex(current_index)
         self.crop_combo.currentIndexChanged.connect(self.on_crop_mode_changed)
+        self.crop_combo.activated.connect(lambda _: self.settings.save())
         
         crop_layout.addWidget(crop_label)
         crop_layout.addWidget(self.crop_combo)
@@ -348,6 +351,7 @@ class MainWindow(QMainWindow):
         self.power_slider.setValue(int(self.settings.crop_power * 10))
         self.power_slider.setFixedWidth(150)
         self.power_slider.valueChanged.connect(self.on_power_changed)
+        self.power_slider.sliderReleased.connect(self.settings.save)
         
         self.power_value = QLabel(f"{self.settings.crop_power:.1f}")
         self.power_value.setFixedWidth(28)
@@ -367,6 +371,7 @@ class MainWindow(QMainWindow):
         current_spread_index = list(SPREAD_MODES.keys()).index(self.settings.spread_mode)
         self.spread_combo.setCurrentIndex(current_spread_index)
         self.spread_combo.currentIndexChanged.connect(self.on_spread_mode_changed)
+        self.spread_combo.activated.connect(lambda _: self.settings.save())
 
         spread_layout.addWidget(spread_label)
         spread_layout.addWidget(self.spread_combo)
@@ -499,10 +504,11 @@ class MainWindow(QMainWindow):
         for i in range(self.task_list.count()):
             item = self.task_list.item(i)
             if item.data(Qt.UserRole) == task_path:
-                ratio = (1 - stats.ratio) * 100
+                ratio = max(0, (1 - stats.ratio) * 100)
                 orig = format_size(stats.original_size)
                 comp = format_size(stats.compressed_size)
-                item.setText(f"✅ {Path(task_path).name} ({orig} → {comp}, -{ratio:.0f}%)")
+                suffix = f"，错误 {len(stats.errors)} 项" if stats.errors else ""
+                item.setText(f"✅ {Path(task_path).name} ({orig} → {comp}, -{ratio:.0f}%{suffix})")
                 break
     
     def on_error(self, task_path: str, error_msg: str):
@@ -525,3 +531,7 @@ class MainWindow(QMainWindow):
         self.progress_label.setText("全部完成！")
         self.progress_bar.setValue(100)
         self.pending_tasks.clear()
+
+    def closeEvent(self, event):
+        self.settings.save()
+        super().closeEvent(event)
