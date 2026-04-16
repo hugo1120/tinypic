@@ -7,6 +7,8 @@ import random
 from pathlib import Path
 from PIL import Image
 
+from .encoding import encode_jpeg, normalize_image_mode
+
 # 尝试导入 MozJPEG 优化库
 try:
     from mozjpeg_lossless_optimization import optimize_jpeg
@@ -114,22 +116,8 @@ def compress_image(
     actual_quality = min(quality, original_quality - 5)
     actual_quality = max(60, actual_quality)  # 不低于 60
     
-    img = Image.open(io.BytesIO(image_data))
-    
-    # 处理透明通道
-    if img.mode in ('RGBA', 'P', 'LA'):
-        background = Image.new('RGB', img.size, (255, 255, 255))
-        if img.mode == 'P':
-            img = img.convert('RGBA')
-        if img.mode in ('RGBA', 'LA'):
-            background.paste(img, mask=img.split()[-1])
-            img = background
-        else:
-            img = img.convert('RGB')
-    elif img.mode == 'L':
-        pass
-    elif img.mode != 'RGB':
-        img = img.convert('RGB')
+    with Image.open(io.BytesIO(image_data)) as raw:
+        img = normalize_image_mode(raw)
     
     # 应用裁剪
     img = apply_crop(img, crop_mode, crop_power)
@@ -139,28 +127,7 @@ def compress_image(
     if is_gray and img.mode == 'RGB':
         img = img.convert('L')
     
-    # 压缩
-    output_buffer = io.BytesIO()
-    
-    save_kwargs = {
-        'format': 'JPEG',
-        'quality': actual_quality,
-        'optimize': True,
-    }
-    
-    if img.mode == 'RGB':
-        save_kwargs['subsampling'] = '4:2:0'
-        save_kwargs['progressive'] = True
-    
-    img.save(output_buffer, **save_kwargs)
-    compressed_data = output_buffer.getvalue()
-    
-    # MozJPEG 无损优化
-    if HAS_MOZJPEG:
-        try:
-            compressed_data = optimize_jpeg(compressed_data)
-        except Exception:
-            pass
+    compressed_data = encode_jpeg(img, actual_quality)
     
     compressed_size = len(compressed_data)
     
@@ -175,3 +142,13 @@ def compress_image(
     }
     
     return compressed_data, stats
+
+
+__all__ = [
+    'DEFAULT_QUALITY',
+    'SUPPORTED_EXTENSIONS',
+    'compress_image',
+    'estimate_jpeg_quality',
+    'is_grayscale_image',
+    'is_image_file',
+]

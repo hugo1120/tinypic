@@ -13,12 +13,16 @@ echo  ╚═══════════════════════�
 echo.
 
 cd /d "%~dp0"
+set "PYINSTALLER_CONFIG_DIR=%~dp0.pyinstaller-cache"
+
+if not exist "%PYINSTALLER_CONFIG_DIR%" mkdir "%PYINSTALLER_CONFIG_DIR%"
 
 echo [1/3] 清理旧文件...
 if exist "dist\TinyPic.exe" del /f "dist\TinyPic.exe"
 
 echo [2/3] 正在打包 (需要1-2分钟)...
 echo.
+echo  使用缓存目录: %PYINSTALLER_CONFIG_DIR%
 C:\Python313\python.exe -m PyInstaller TinyPic.spec --clean --noconfirm
 
 echo.

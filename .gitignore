@@ -36,6 +36,7 @@ Desktop.ini
 *.dylib
 
 # Project Specific
+.worktrees/
 Releases/
 v1.0.0/
 测试漫画/
