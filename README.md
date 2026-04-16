@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <strong>批量漫画压缩工具 | Batch Comic Compression Tool</strong>
+  <strong>批量漫画压缩与 CBZ 整理工具 | Batch Comic Compression and CBZ Packaging Tool</strong>
 </p>
 
 <p align="center">
@@ -25,39 +25,51 @@
 
 ### 简介
 
-TinyPic 是一款专为漫画/图片压缩设计的桌面工具，支持批量处理，自动双页裁剪，白边去除，视觉无损压缩。
+TinyPic 是一个面向 Windows 的桌面工具，用来把漫画文件夹或压缩包整理并压缩成更适合阅读器使用的 `CBZ`。它提供双页处理、白边/页码裁剪、批量任务和持久化设置，适合日常整理漫画库或给电纸书、平板阅读器减体积。
 
 ### 功能特性
 
-#### 📦 格式支持
-- **输入**: 文件夹、ZIP、CBZ、RAR、CBR、EPUB
-- **输出**: CBZ (ZIP 格式漫画包)
+#### 📦 输入与输出
+- **输入类型**：文件夹、ZIP、CBZ、RAR、CBR、EPUB
+- **输出类型**：CBZ
+- **输出命名**：自动输出为同目录下的 `*_tinypic.cbz`
+- **批量处理**：支持一次拖入多个任务，逐个处理并显示结果
 
-#### ✂️ 智能裁剪
-- **双页切分**: 自动检测宽图并按日漫顺序（右→左）切分
-- **自动旋转**: 宽图顺时针旋转 90°，适合阅读器全屏查看
-- **白边裁剪**: 去除图片四周空白边距，节省 5-15% 体积
-- **页码裁剪**: 智能检测并移除底部页码，额外节省 2-5%
-- **裁剪力度**: 0-3 可调，越高越激进
+#### ✂️ 页面处理
+- **双页处理模式**：
+  - `拆分双页`：检测宽图后按日漫顺序 `右 -> 左` 切成两页
+  - `自动旋转`：宽图顺时针旋转 90 度，适合竖屏阅读器
+  - `不处理`：保留原图页面结构
+- **封面保护**：首张图片按封面处理，不做双页拆分
+- **裁剪模式**：
+  - `不裁剪`
+  - `白边裁剪`
+  - `白边 + 页码裁剪`
+- **裁剪力度**：`0.0 - 3.0` 可调，白边裁剪和页码裁剪共用同一力度参数
 
-#### 📖 双页处理
-- **拆分双页**: 自动切分为左右单页（日漫阅读顺序）
-- **自动旋转**: 宽幅双页旋转 90°，适配竖屏阅读器
-- **不处理**: 保留原图不做双页处理
+#### 🗜️ 压缩与画质
+- **压缩质量**：`60 - 95` 可调，默认 `72`
+- **动态质量控制**：尽量避免裁剪后体积反而变大
+- **灰度检测**：黑白漫画会按更合适的方式编码
+- **MozJPEG 优化**：额外做无损 Huffman 优化
+- **输出格式**：统一写入 JPEG 页面并打包为无压缩存储的 CBZ
 
-#### 🗜️ 高效压缩
-- **动态质量**: 根据原图质量自动调整，避免重编码膨胀
-- **灰度检测**: 自动识别黑白漫画并转换格式
-- **MozJPEG 优化**: Huffman 表优化，无损再压缩
-- **色度抽样**: 4:2:0 抽样 + 渐进式 JPEG
+#### ⚡ 性能与稳定性
+- **多线程处理**：`1 - 8` 线程可调
+- **低峰值内存**：文件夹、ZIP/CBZ、EPUB、RAR/CBR 都按需读取，避免整本预读进内存
+- **EPUB 回退机制**：优先读取 OPF 清单；如果元数据损坏，会回退到图片扫描而不是直接失败
+- **任务结果可见**：界面会显示压缩前后大小、压缩比例和单任务错误数量
+- **单文件 EXE**：打包后为单个 `TinyPic.exe`，便于分发
 
-#### ⚡ 性能优化
-- **快速启动**: EXE 体积优化至 ~32 MB，启动时间大幅缩短
-- **多线程处理**: 1-100 线程可调
-- **7-Zip 集成**: 调用本地安装的 7-Zip 解压 RAR 文件
-
-#### 💾 设置持久化
-- 所有设置自动保存到 `config.json`
+#### 💾 设置记忆
+- 会记住以下选项：
+  - 压缩质量
+  - 处理线程
+  - 裁剪模式
+  - 裁剪力度
+  - 双页处理模式
+- **源码运行**：配置写入项目根目录的 `config.json`
+- **打包运行**：配置写入 `TinyPic.exe` 同目录的 `config.json`
 
 ### 技术栈
 
@@ -66,7 +78,7 @@ TinyPic 是一款专为漫画/图片压缩设计的桌面工具，支持批量�
 | GUI | PySide6 (Qt6) |
 | 图像处理 | Pillow |
 | JPEG 优化 | mozjpeg-lossless-optimization |
-| RAR 解压 | 7-Zip (外部) |
+| RAR/CBR 解压 | 7-Zip（外部依赖） |
 | 打包 | PyInstaller |
 
 ### 安装
@@ -76,43 +88,47 @@ TinyPic 是一款专为漫画/图片压缩设计的桌面工具，支持批量�
 
 #### 方式二：从源码运行
 ```bash
-# 克隆仓库
 git clone https://github.com/hugo1120/tinypic.git
 cd tinypic
-
-# 安装依赖
 pip install -r requirements.txt
-
-# 运行
 python main.py
 ```
 
 ### 使用
 
-1. 拖拽漫画文件夹或压缩包到窗口
-2. 调整压缩质量 (60-95)
-3. 选择裁剪模式
-4. 选择双页处理模式（拆分 / 旋转 / 不处理）
-5. 点击「开始处理」
+1. 拖拽文件夹、`CBZ/ZIP/RAR/CBR/EPUB` 到窗口
+2. 设置压缩质量、线程数、裁剪模式、裁剪力度、双页处理模式
+3. 点击“开始处理”
+4. 等待任务完成并查看每个任务的压缩结果
 
-输出文件保存在原文件同目录，文件名后缀 `_tinypic.cbz`。
+输出文件会保存在原文件同目录，文件名后缀为 `_tinypic.cbz`。
 
 ### 打包
 
-双击 `build.bat` 或运行：
+#### 方式一：使用脚本
+双击 `build.bat`。
+
+注意：
+- 脚本默认使用 `C:\Python313\python.exe`
+- 脚本会清理旧产物，并把 PyInstaller 缓存放到项目目录内
+
+#### 方式二：手动打包
 ```bash
-python -m PyInstaller TinyPic.spec --clean
+python -m PyInstaller TinyPic.spec --clean --noconfirm
 ```
 
----
+打包输出位于 `dist/TinyPic.exe`。
 
 ### 系统要求
 
-- **操作系统**: Windows 10/11
-- **RAR 支持**: 需要安装 [7-Zip](https://www.7-zip.org/)
-  - 默认查找路径:
-    - `"C:\Program Files\7-Zip\7z.exe"`
-    - `"C:\Program Files (x86)\7-Zip\7z.exe"`
+- **操作系统**：Windows 10/11
+- **RAR/CBR 支持**：需要安装 [7-Zip](https://www.7-zip.org/)
+- **默认查找路径**：
+  - `"C:\Program Files\7-Zip\7z.exe"`
+  - `"C:\Program Files (x86)\7-Zip\7z.exe"`
+  - `"D:\Program Files\7-Zip\7z.exe"`
+  - `"D:\Program Files (x86)\7-Zip\7z.exe"`
+- **源码运行环境**：Python 3.10+
 
 ---
 
@@ -120,40 +136,51 @@ python -m PyInstaller TinyPic.spec --clean
 
 ### Introduction
 
-TinyPic is a desktop tool designed for batch comic/image compression with automatic double-page splitting, margin cropping, and visually lossless compression.
+TinyPic is a Windows desktop tool for turning comic folders or archives into smaller, reader-friendly `CBZ` files. It provides spread handling, margin/page-number cropping, batch processing, and persistent settings, which makes it useful for organizing manga libraries or preparing files for e-readers and tablets.
 
 ### Features
 
-#### 📦 Format Support
-- **Input**: Folder, ZIP, CBZ, RAR, CBR, EPUB
-- **Output**: CBZ (ZIP-based comic archive)
-- *Note: RAR/CBR support requires 7-Zip installed*
+#### 📦 Input and Output
+- **Input types**: Folder, ZIP, CBZ, RAR, CBR, EPUB
+- **Output type**: CBZ
+- **Output naming**: Saved next to the source as `*_tinypic.cbz`
+- **Batch workflow**: You can drag in multiple tasks and process them one by one
 
-#### ✂️ Smart Cropping
-- **Double-page Split**: Auto-detect wide images and split in manga order (right→left)
-- **Auto Rotate**: Rotate wide images 90° clockwise for e-reader full-screen viewing
-- **Margin Cropping**: Remove white/black margins, save 5-15% size
-- **Page Number Cropping**: Intelligently detect and remove bottom page numbers, save 2-5% more
-- **Cropping Power**: Adjustable 0-3, higher = more aggressive
+#### ✂️ Page Processing
+- **Spread modes**:
+  - `Split`: Detect wide pages and split them in manga order `right -> left`
+  - `Rotate`: Rotate wide pages 90 degrees clockwise for portrait readers
+  - `None`: Keep the original page layout
+- **Cover protection**: The first image is treated as a cover and is not split
+- **Crop modes**:
+  - `None`
+  - `Margins`
+  - `Margins + Page Number`
+- **Crop power**: Adjustable from `0.0 - 3.0`; the same value is shared by both margin cropping and page-number cropping
 
-#### 📖 Spread Processing
-- **Split**: Auto-split wide pages into left/right (manga reading order)
-- **Rotate**: Rotate wide pages 90° for portrait e-readers
-- **None**: Keep original double pages as-is
+#### 🗜️ Compression and Quality
+- **Compression quality**: Adjustable from `60 - 95`, default `72`
+- **Dynamic quality control**: Reduces the chance of files becoming larger after processing
+- **Grayscale detection**: Black-and-white comics are encoded more appropriately
+- **MozJPEG optimization**: Applies additional lossless Huffman optimization
+- **Output format**: Pages are written as JPEG and packaged into a store-only CBZ archive
 
-#### 🗜️ Efficient Compression
-- **Dynamic Quality**: Auto-adjust based on source quality to avoid bloat
-- **Grayscale Detection**: Auto-convert B&W comics
-- **MozJPEG Optimization**: Huffman table optimization for lossless re-compression
-- **Chroma Subsampling**: 4:2:0 + Progressive JPEG
-
-#### ⚡ Performance
-- **Fast Startup**: Optimized to ~32 MB EXE with significantly faster launch times
-- **Multi-threading**: 1-100 threads configurable
-- **7-Zip Integration**: Direct RAR processing (requires 7-Zip)
+#### ⚡ Performance and Reliability
+- **Multi-threading**: Adjustable from `1 - 8` worker threads
+- **Lower memory usage**: Folder, ZIP/CBZ, EPUB, and RAR/CBR sources are loaded on demand instead of fully preloading the whole book
+- **EPUB fallback**: The app prefers OPF manifest order; if EPUB metadata is broken, it falls back to scanning image entries instead of failing immediately
+- **Visible task results**: The UI shows original size, compressed size, compression ratio, and per-task error count
+- **Single-file EXE**: Packaged output is a single `TinyPic.exe`
 
 #### 💾 Settings Persistence
-- All settings auto-saved to `config.json`
+- TinyPic remembers:
+  - Compression quality
+  - Worker thread count
+  - Crop mode
+  - Crop power
+  - Spread mode
+- **Running from source**: settings are written to `config.json` in the repository root
+- **Running from the packaged EXE**: settings are written to `config.json` next to `TinyPic.exe`
 
 ### Tech Stack
 
@@ -162,55 +189,60 @@ TinyPic is a desktop tool designed for batch comic/image compression with automa
 | GUI | PySide6 (Qt6) |
 | Image Processing | Pillow |
 | JPEG Optimization | mozjpeg-lossless-optimization |
-| RAR Extraction | 7-Zip (external) |
+| RAR/CBR Extraction | 7-Zip (external dependency) |
 | Packaging | PyInstaller |
 
 ### Installation
 
 #### Option 1: Download Release
-Download `TinyPic.exe` from [Releases](../../releases) and run.
+Download `TinyPic.exe` from [Releases](../../releases) and run it.
 
 #### Option 2: Run from Source
 ```bash
-# Clone repository
 git clone https://github.com/hugo1120/tinypic.git
 cd tinypic
-
-# Install dependencies
 pip install -r requirements.txt
-
-# Run
 python main.py
 ```
 
 ### Usage
 
-1. Drag comic folders or archives into the window
-2. Adjust compression quality (60-95)
-3. Select cropping mode
-4. Select spread processing mode (Split / Rotate / None)
-5. Click "Start Processing"
+1. Drag a folder or `CBZ/ZIP/RAR/CBR/EPUB` file into the window
+2. Configure quality, worker threads, crop mode, crop power, and spread mode
+3. Click `Start`
+4. Wait for completion and review the result of each task
 
-Output files are saved in the same directory with `_tinypic.cbz` suffix.
+Output files are saved next to the source with the `_tinypic.cbz` suffix.
 
 ### Build
 
-Double-click `build.bat` or run:
+#### Option 1: Use the script
+Double-click `build.bat`.
+
+Notes:
+- The script uses `C:\Python313\python.exe` by default
+- It removes old build artifacts and stores the PyInstaller cache inside the project directory
+
+#### Option 2: Build manually
 ```bash
-python -m PyInstaller TinyPic.spec --clean
+python -m PyInstaller TinyPic.spec --clean --noconfirm
 ```
+
+The packaged executable is generated at `dist/TinyPic.exe`.
+
+### Requirements
+
+- **OS**: Windows 10/11
+- **RAR/CBR support**: Requires [7-Zip](https://www.7-zip.org/)
+- **Default lookup paths**:
+  - `"C:\Program Files\7-Zip\7z.exe"`
+  - `"C:\Program Files (x86)\7-Zip\7z.exe"`
+  - `"D:\Program Files\7-Zip\7z.exe"`
+  - `"D:\Program Files (x86)\7-Zip\7z.exe"`
+- **Source runtime**: Python 3.10+
 
 ---
 
 ## License
 
 MIT License
-
-## Requirements
-
-- **OS**: Windows 10/11
-- **RAR Support**: Requires [7-Zip](https://www.7-zip.org/) installed
-  - Default paths checked:
-    - `"C:\Program Files\7-Zip\7z.exe"`
-    - `"C:\Program Files (x86)\7-Zip\7z.exe"`
-- **Source Code**: Python 3.10+
